@@ -3,18 +3,12 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 #Configuration
-import configparser
+import configparser, time, pytz, requests, os.path, csv
 #For Sleep functions
 import time
 #To get current date and time
 from datetime import date
 from datetime import datetime
-#Get eastern timezon
-import pytz
-#The ability to write CSV
-import csv
-#The ability to check if file exists
-import os.path
 #Discord
 from discord import Webhook, RequestsWebhookAdapter
 import requests
