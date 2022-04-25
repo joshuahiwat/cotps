@@ -2,6 +2,7 @@ import configparser, csv, os.path, pytz, time, warnings
 
 from datetime import date
 from datetime import datetime
+from dotenv import load_dotenv
 from discord import (
     Webhook,
     RequestsWebhookAdapter,
@@ -271,14 +272,15 @@ def sendlogmessage(message):
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.sections()
+    load_dotenv()
 
     config.read('config.cfg')
 
     # Provide chromedriver location
     chromedriver = config['DEFAULT']['chromedriver']
     # Provide the email and password
-    username = config['DEFAULT']['username']
-    password = config['DEFAULT']['password']
+    username = os.getenv("username")
+    password = os.getenv("password")
     countrycode = config['DEFAULT']['countrycode']
     # How long for each page refresh
     refreshtime = int(config['DEFAULT']['refreshment'])
