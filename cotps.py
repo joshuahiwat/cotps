@@ -251,6 +251,8 @@ def writedicttocsv(csvfile, orderdict):
 
 # Main Function
 def start():
+    global usecsvfile, refreshtime, countrycode
+
     config = configparser.ConfigParser()
     config.sections()
 
