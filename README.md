@@ -19,11 +19,3 @@ Program requirements
 Python Modules Needed
 ----------------------------
 * Modules can be found on top of the first python class
-
-Starting the Program
-----------------------------
-First, open a command prompt and type "pip install selenium"
-
-This will install the selenium webdriver for python.
-
-Also do this for other Python modules mentioned before.
