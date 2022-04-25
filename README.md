@@ -32,8 +32,16 @@ Python Modules Needed
 * pytz (needs to be installed)
 * csv
 * os
-* requests
-* discord
+* requests (needs to be installed)
+* discord (needs to be installed)
+
+Installing python modules
+----------------------------
+First, open a command prompt and type 
+* "pip install selenium"
+* "pip install pytz"
+* "pip install discord"
+* "pip install requests"
 
 
 Program logic
@@ -50,11 +58,3 @@ Program logic
 10) The program will then gather the order details and then click the "Confirm" button.
 11) It will continue steps 10 and 11 until there is less than $5 left in the wallet.
 12) It will then start the "timebetweenchecks" wait until the "In Transaction" reaches the set up amount or percentage again.
-
-Starting the Program
-----------------------------
-First, open a command prompt and type "pip install selenium"
-
-This will install the selenium webdriver for python.
-
-Also do this for other Python modules mentioned before.
