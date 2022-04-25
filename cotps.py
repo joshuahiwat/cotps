@@ -1,8 +1,12 @@
-import configparser, csv, os.path, pytz, time, warnings
+import configparser, csv, pytz, time, warnings, os
 
+from flask import (
+    Flask,
+    request,
+    json,
+)
 from datetime import date
 from datetime import datetime
-from dotenv import load_dotenv
 from discord import (
     Webhook,
     RequestsWebhookAdapter,
@@ -10,19 +14,17 @@ from discord import (
 from selenium import webdriver
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+app = Flask(__name__)
 
 
 def startchrome(chromedriver):
     options = webdriver.ChromeOptions()
-
-    sendlogmessage("Open browser")
 
     options.add_argument('--window-size=1024,768')
     options.add_argument('--log-level=3')
 
     # Run Chrome invisible or not
     if int(runheadless) == 1:
-        sendlogmessage("Running Chrome headless")
         options.add_argument("--headless")
         options.add_argument("--start-maximized");
     # END IF
@@ -38,7 +40,6 @@ def startchrome(chromedriver):
 def dologincheck(driver, refreshtime):
     # messageboxes('Logged in: ' + str(driver.execute_script("return localStorage['IS_LOGIN']")))
     if driver.execute_script("return localStorage['IS_LOGIN']") != 'Y':
-        sendlogmessage('Not logged in')
         setcountrycode(driver, refreshtime)
         logintocotps(driver, refreshtime)
         gototransactionhall(driver, refreshtime)
@@ -50,15 +51,14 @@ def dologincheck(driver, refreshtime):
 # END DEF
 
 def logintocotps(driver, refreshtime):
-    sendlogmessage("Logging into COTPS")
     driver.get('https://cotps.com/#/pages/login/login')
     time.sleep(refreshtime)
     ele = driver.find_elements_by_class_name('uni-input-input')
     # messageboxes("Inputting phone number")
-    ele[0].send_keys(username)
+    ele[0].send_keys(os.getenv("username"))
     time.sleep(1)
     # messageboxes("Inputting password")
-    ele[1].send_keys(password)
+    ele[1].send_keys(os.getenv("password"))
     time.sleep(1)
     # messageboxes("Finding and clicking login")
     loginbutton = driver.find_elements_by_class_name('login')
@@ -101,7 +101,6 @@ def claimreferralfees(driver, refreshtime):
         varconfirm = driver.find_element_by_xpath(
             '/html/body/uni-app/uni-page/uni-page-wrapper/uni-page-body/uni-view/uni-view[2]/uni-view/uni-button')
         varconfirm.click()
-        sendlogmessage('Fees LV1: $' + str(varfees))
         time.sleep(refreshtime)
 
         # Claim LV2
@@ -115,7 +114,6 @@ def claimreferralfees(driver, refreshtime):
         varconfirm = driver.find_element_by_xpath(
             '/html/body/uni-app/uni-page/uni-page-wrapper/uni-page-body/uni-view/uni-view[2]/uni-view/uni-button')
         varconfirm.click()
-        sendlogmessage('Fees LV2: $' + str(varfees))
         time.sleep(refreshtime)
 
         # Claim LV3
@@ -128,15 +126,11 @@ def claimreferralfees(driver, refreshtime):
         time.sleep(refreshtime / 2)
         varconfirm = driver.find_element_by_xpath(
             '/html/body/uni-app/uni-page/uni-page-wrapper/uni-page-body/uni-view/uni-view[2]/uni-view/uni-button')
-        sendlogmessage('Fees LV3: $' + str(varfees))
         varconfirm.click()
-
-        sendlogmessage('Claimed fees: $' + str(varfees))
 
         time.sleep(refreshtime)
 
     except ValueError:
-        sendlogmessage('Error claiming referrals, back to the hall..')
         return False
 
 
@@ -157,7 +151,6 @@ def getwalletinfo(driver, walletinfo, refreshtime):
         walletinfo[1] = currentintransaction
 
     except ValueError:
-        sendlogmessage('Error getting wallet, refreshing page')
         gototransactionhall(driver, refreshtime)
     # END TRY
     return walletinfo
@@ -173,14 +166,13 @@ def getandsellorder(driver, refreshtime):
         time.sleep(refreshtime)
         try:
             varsell = driver.find_element_by_xpath(
-                '/html/body/uni-app/uni-page/uni-page-wrapper/uni-page-body/uni-view/uni-view[7]/uni-view/uni-view/uni-view[6]/uni-button[2]')
+                '/html/body/uni-app/uni-page/uni-page-wrapper/uni-page-body/uni-view/uni-view['
+                '7]/uni-view/uni-view/uni-view[6]/uni-button[2]')
             varsell.click()
             time.sleep(refreshtime)
         except ValueError:
-            sendlogmessage('Sell button 2 not found, breaking off')
             return False
     except ValueError:
-        sendlogmessage('Sell button 1 not found, breaking off')
         return False
     return True
 
@@ -207,7 +199,6 @@ def getorderdetails(driver, refreshtime, orderdict):
         orderdict.update({"total": vartotal})
         time.sleep(refreshtime)
     except ValueError:
-        sendlogmessage('Error getting wallet, refreshing page')
         gototransactionhall(driver, refreshtime)
     # END TRY
     return orderdict
@@ -249,7 +240,6 @@ def writedicttocsv(csvfile, orderdict):
     if int(usecsvfile) == 1:
         try:
             with open(csvfile, 'a') as f:
-                sendlogmessage("Writing Order to CSV")
                 writer = csv.writer(f, lineterminator='\n')
                 writer.writerow(
                     [orderdict.get("ordernum"), orderdict.get("timeofsale"), orderdict.get("transactionamount"),
@@ -258,21 +248,10 @@ def writedicttocsv(csvfile, orderdict):
         except ValueError:
             return False
 
-
-def sendlogmessage(message):
-    try:
-        webhook = Webhook.from_url(discordwebhookurl, adapter=RequestsWebhookAdapter())
-        webhook.send(message)
-        print(message)
-    except ValueError:
-        print(message)
-
-
 # Main Function
-if __name__ == '__main__':
+def start():
     config = configparser.ConfigParser()
     config.sections()
-    load_dotenv()
 
     config.read('config.cfg')
 
@@ -311,7 +290,6 @@ if __name__ == '__main__':
     if int(usecsvfile) == 1:
         file_exists = os.path.exists(csvfile)
         if not bool(file_exists):
-            sendlogmessage('CSV file ' + str(csvfile) + ' does not exist, trying to create it...')
             writecsvheader(csvfile)
         # END IF
     # END IF
@@ -321,8 +299,6 @@ if __name__ == '__main__':
     now = datetime.now(est)
     currentdate = today.strftime("%m-%d")
     currenttime = now.strftime("%H:%M")
-
-    sendlogmessage('Program start time: ' + currentdate + ' ' + currenttime)
 
     # start browser
     driver = startchrome(chromedriver)
@@ -344,12 +320,10 @@ if __name__ == '__main__':
         currenttime = now.strftime("%H:%M")
 
         # check and claim referral rewards
-        sendlogmessage('Opening referrals page and claiming fees')
         gotoreferralrewards(driver, refreshtime)
         claimreferralfees(driver, refreshtime)
 
         # Goto Transaction Hall
-        sendlogmessage('Back to transaction hall...')
         gototransactionhall(driver, refreshtime)
 
         # get wallet info and see if anything is in transaction
@@ -358,13 +332,8 @@ if __name__ == '__main__':
         # Get in transaction amount
         currentwallet = float(walletinfo[0])
         intranswallet = float(walletinfo[1])
-        sendlogmessage('In transactions: $' + str(intranswallet))
-        sendlogmessage(
-            'Wallet balance: $' + str(currentwallet) + ' (needed for trading: $' + str(walletamounttostart) + ') OR')
         totalassets = intranswallet + currentwallet
         walletbalancepercentage = round(100 / (totalassets / currentwallet), 2)
-        sendlogmessage('Wallet balance percentage: ' + str(walletbalancepercentage) + '% (needed for trading: ' + str(
-            walletpercentagetostart) + '%)')
 
         # Did all my money come back yet
         orderdicttxthisrun = 0
@@ -373,8 +342,6 @@ if __name__ == '__main__':
         # start transactions when wallet percentage reaches at least the % set in config OR the amount set to start
         if (float(walletbalancepercentage) >= float(walletpercentagetostart) or (
                 float(currentwallet) >= float(walletamounttostart))):
-
-            sendlogmessage('Starting trades')
 
             while True:
 
@@ -390,8 +357,6 @@ if __name__ == '__main__':
                     currentdate = today.strftime("%m-%d")
                     currenttime = now.strftime("%H:%M")
                     timestamp = currentdate + ' ' + currenttime
-                    sendlogmessage('Order $' + str(orderdict.get("transactional")) + ', profit $' + str(
-                        orderdict.get("profit")) + ' at ' + str(timestamp))
                     orderdict.update({"timescale": str(timestamp)})
                     orderdicttxthisrun = float(orderdicttxthisrun) + float(orderdict.get("transactional"))
                     orderdictprofitthisrun = round(float(orderdictprofitthisrun) + float(orderdict.get("profit")), 2)
@@ -418,11 +383,19 @@ if __name__ == '__main__':
                     break
                 # END IF
             # END WHILE
-            sendlogmessage(
-                'Total tx amount: $' + str(orderdicttxthisrun) + ', total profit: $' + str(orderdictprofitthisrun))
         # END IF
         dologincheck(driver, refreshtime)
-        sendlogmessage('Waiting ' + str(timebetweeneachcheck) + ' seconds to begin next wallet check')
         time.sleep(timebetweeneachcheck)
     # END WHILE
+
+
 # END DEF
+
+@app.route('/webhook')
+def webhook():
+    start()
+    return 'Webhooks with Python'
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
